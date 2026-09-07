@@ -1,0 +1,1114 @@
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Prueba de ubicación</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .card {
+            background: #1d1d1d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #292929;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📍 Prueba de ubicación</h1>
+
+    <div class="card">
+
+        <p>
+            Esta herramienta recopila información que el navegador
+            permite consultar y, si autorizas la ubicación, obtiene
+            tus coordenadas GPS.
+        </p>
+
+        <p>
+            El reporte se enviará al correo configurado por el
+            propietario de la aplicación.
+        </p>
+
+        <button
+            id="startButton"
+            onclick="startScan()"
+        >
+            🚀 Iniciar análisis
+        </button>
+
+        <div
+            id="status"
+            class="status"
+        >
+            Esperando...
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Resultado</h2>
+
+        <pre id="output">
+Todavía no se ha ejecutado el análisis.
+        </pre>
+
+    </div>
+
+</div>
+
+
+<script>
+
+let reportData = {};
+
+
+function getDeviceType() {
+
+    const ua = navigator.userAgent.toLowerCase();
+
+    if (/iphone|ipod/.test(ua)) {
+        return "iPhone";
+    }
+
+    if (/ipad/.test(ua)) {
+        return "iPad";
+    }
+
+    if (/android/.test(ua)) {
+        return "Android";
+    }
+
+    if (/windows/.test(ua)) {
+        return "Windows PC";
+    }
+
+    if (/mac/.test(ua)) {
+        return "Mac";
+    }
+
+    if (/linux/.test(ua)) {
+        return "Linux PC";
+    }
+
+    return "Unknown";
+}
+
+
+function getOS() {
+
+    const ua = navigator.userAgent;
+
+    if (/iPhone OS/.test(ua)) {
+
+        const match = ua.match(/iPhone OS ([0-9_]+)/);
+
+        return match
+            ? "iPhone OS " + match[1].replace(/_/g, ".")
+            : "iOS";
+
+    }
+
+    if (/CPU OS/.test(ua)) {
+
+        const match = ua.match(/CPU OS ([0-9_]+)/);
+
+        return match
+            ? "iOS " + match[1].replace(/_/g, ".")
+            : "iOS";
+
+    }
+
+    if (/Android/.test(ua)) {
+
+        const match = ua.match(/Android ([0-9.]+)/);
+
+        return match
+            ? "Android " + match[1]
+            : "Android";
+    }
+
+    if (/Windows NT/.test(ua)) {
+
+        const match = ua.match(/Windows NT ([0-9.]+)/);
+
+        return match
+            ? "Windows NT " + match[1]
+            : "Windows";
+    }
+
+    if (/Mac OS X/.test(ua)) {
+
+        const match = ua.match(/Mac OS X ([0-9_]+)/);
+
+        return match
+            ? "macOS " + match[1].replace(/_/g, ".")
+            : "macOS";
+    }
+
+    if (/Linux/.test(ua)) {
+        return "Linux";
+    }
+
+    return "Unknown";
+}
+
+
+function getGPU() {
+
+    const canvas = document.createElement("canvas");
+
+    const gl =
+        canvas.getContext("webgl") ||
+        canvas.getContext("experimental-webgl");
+
+    if (!gl) {
+
+        return {
+            vendor: "No disponible",
+            renderer: "No disponible",
+            webgl: false,
+            webgl2: false,
+            glsl: "No disponible",
+            maxTextureSize: "No disponible",
+            maxViewport: "No disponible"
+        };
+    }
+
+    const debugInfo =
+        gl.getExtension("WEBGL_debug_renderer_info");
+
+    let vendor = "No disponible";
+    let renderer = "No disponible";
+
+    if (debugInfo) {
+
+        vendor =
+            gl.getParameter(
+                debugInfo.UNMASKED_VENDOR_WEBGL
+            );
+
+        renderer =
+            gl.getParameter(
+                debugInfo.UNMASKED_RENDERER_WEBGL
+            );
+    }
+
+    const maxTextureSize =
+        gl.getParameter(
+            gl.MAX_TEXTURE_SIZE
+        );
+
+    const maxViewport =
+        gl.getParameter(
+            gl.MAX_VIEWPORT_DIMS
+        );
+
+    const webgl2 =
+        !!document.createElement("canvas")
+            .getContext("webgl2");
+
+    return {
+
+        vendor: vendor,
+
+        renderer: renderer,
+
+        webgl: true,
+
+        webgl2: webgl2,
+
+        glsl:
+            gl.getParameter(
+                gl.SHADING_LANGUAGE_VERSION
+            ),
+
+        maxTextureSize:
+            maxTextureSize,
+
+        maxViewport:
+            Array.from(maxViewport).join(" x ")
+    };
+}
+
+
+async function getPublicIP() {
+
+    try {
+
+        const response =
+            await fetch(
+                "https://ipapi.co/json/"
+            );
+
+        if (!response.ok) {
+            throw new Error("IP API error");
+        }
+
+        return await response.json();
+
+    } catch (error) {
+
+        return {
+            ip: "No disponible",
+            continent_code: "",
+            country_name: "",
+            country_code: "",
+            region: "",
+            city: "",
+            postal: "",
+            timezone: "",
+            org: "",
+            asn: "",
+            hostname: "",
+            latitude: "",
+            longitude: ""
+        };
+    }
+}
+
+
+function getConnectionInfo() {
+
+    const connection =
+        navigator.connection ||
+        navigator.mozConnection ||
+        navigator.webkitConnection;
+
+    if (!connection) {
+
+        return {
+            connection: "No disponible",
+            effectiveType: "No disponible",
+            downlink: "No disponible",
+            rtt: "No disponible",
+            online: navigator.onLine
+        };
+    }
+
+    return {
+
+        connection:
+            connection.type ||
+            "No disponible",
+
+        effectiveType:
+            connection.effectiveType ||
+            "No disponible",
+
+        downlink:
+            connection.downlink !== undefined
+                ? connection.downlink + " Mbps"
+                : "No disponible",
+
+        rtt:
+            connection.rtt !== undefined
+                ? connection.rtt + " ms"
+                : "No disponible",
+
+        online:
+            navigator.onLine
+    };
+}
+
+
+function getCapabilities() {
+
+    return {
+
+        "Geolocation API":
+            "geolocation" in navigator,
+
+        "Camera API":
+            !!(
+                navigator.mediaDevices &&
+                navigator.mediaDevices.getUserMedia
+            ),
+
+        "Microphone API":
+            !!(
+                navigator.mediaDevices &&
+                navigator.mediaDevices.getUserMedia
+            ),
+
+        "Bluetooth API":
+            "bluetooth" in navigator,
+
+        "USB API":
+            "usb" in navigator,
+
+        "NFC API":
+            "NDEFReader" in window,
+
+        "Vibration API":
+            "vibrate" in navigator,
+
+        "Gamepad API":
+            "getGamepads" in navigator,
+
+        "Service Worker":
+            "serviceWorker" in navigator,
+
+        "WebAssembly":
+            typeof WebAssembly !== "undefined",
+
+        "WebRTC":
+            "RTCPeerConnection" in window,
+
+        "Clipboard API":
+            "clipboard" in navigator,
+
+        "Wake Lock API":
+            "wakeLock" in navigator
+    };
+}
+
+
+function formatValue(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return "No disponible";
+    }
+
+    return value;
+}
+
+
+function buildTextReport(data) {
+
+    const d = data.device;
+    const s = data.screen;
+    const b = data.browser;
+    const g = data.gpu;
+    const n = data.network;
+    const ip = data.ip;
+    const l = data.location;
+
+    let text = "";
+
+    text += "[!] DEVICE INFORMATION\n\n";
+
+    text +=
+        "[+] Device Type : " +
+        formatValue(d.type) +
+        "\n";
+
+    text +=
+        "[+] OS : " +
+        formatValue(d.os) +
+        "\n";
+
+    text +=
+        "[+] Platform : " +
+        formatValue(d.platform) +
+        "\n";
+
+    text +=
+        "[+] CPU Cores : " +
+        formatValue(d.cpuCores) +
+        "\n";
+
+    text +=
+        "[+] RAM : " +
+        formatValue(d.ram) +
+        "\n";
+
+    text +=
+        "[+] Architecture : " +
+        formatValue(d.architecture) +
+        "\n";
+
+    text +=
+        "[+] Touch : " +
+        formatValue(d.touch) +
+        "\n";
+
+    text +=
+        "[+] Max Touch Points : " +
+        formatValue(d.maxTouchPoints) +
+        "\n\n";
+
+
+    text += "[!] SCREEN INFORMATION\n\n";
+
+    text +=
+        "[+] Resolution : " +
+        formatValue(s.resolution) +
+        "\n";
+
+    text +=
+        "[+] Available Resolution : " +
+        formatValue(s.availableResolution) +
+        "\n";
+
+    text +=
+        "[+] Pixel Ratio : " +
+        formatValue(s.pixelRatio) +
+        "\n";
+
+    text +=
+        "[+] Orientation : " +
+        formatValue(s.orientation) +
+        "\n";
+
+    text +=
+        "[+] Color Depth : " +
+        formatValue(s.colorDepth) +
+        "\n\n";
+
+
+    text += "[!] BROWSER INFORMATION\n\n";
+
+    text +=
+        "[+] Browser : " +
+        formatValue(b.name) +
+        "\n";
+
+    text +=
+        "[+] User Agent : " +
+        formatValue(b.userAgent) +
+        "\n";
+
+    text +=
+        "[+] Language : " +
+        formatValue(b.language) +
+        "\n";
+
+    text +=
+        "[+] Languages : " +
+        formatValue(b.languages) +
+        "\n";
+
+    text +=
+        "[+] Timezone : " +
+        formatValue(b.timezone) +
+        "\n\n";
+
+
+    text += "[!] GPU INFORMATION\n\n";
+
+    text +=
+        "[+] GPU Vendor : " +
+        formatValue(g.vendor) +
+        "\n";
+
+    text +=
+        "[+] GPU : " +
+        formatValue(g.renderer) +
+        "\n";
+
+    text +=
+        "[+] WebGL : " +
+        formatValue(g.webgl) +
+        "\n";
+
+    text +=
+        "[+] WebGL2 : " +
+        formatValue(g.webgl2) +
+        "\n\n";
+
+
+    text += "[!] NETWORK INFORMATION\n\n";
+
+    text +=
+        "[+] Connection : " +
+        formatValue(n.connection) +
+        "\n";
+
+    text +=
+        "[+] Effective Type : " +
+        formatValue(n.effectiveType) +
+        "\n";
+
+    text +=
+        "[+] Downlink : " +
+        formatValue(n.downlink) +
+        "\n";
+
+    text +=
+        "[+] RTT : " +
+        formatValue(n.rtt) +
+        "\n\n";
+
+
+    text += "[!] IP INFORMATION\n\n";
+
+    text +=
+        "[+] Public IP : " +
+        formatValue(ip.ip) +
+        "\n";
+
+    text +=
+        "[+] Continent : " +
+        formatValue(ip.continent_name) +
+        "\n";
+
+    text +=
+        "[+] Country : " +
+        formatValue(ip.country_name) +
+        "\n";
+
+    text +=
+        "[+] Country Code : " +
+        formatValue(ip.country_code) +
+        "\n";
+
+    text +=
+        "[+] Region : " +
+        formatValue(ip.region) +
+        "\n";
+
+    text +=
+        "[+] City : " +
+        formatValue(ip.city) +
+        "\n";
+
+    text +=
+        "[+] ISP / Organization : " +
+        formatValue(ip.org) +
+        "\n";
+
+    text +=
+        "[+] ASN : " +
+        formatValue(ip.asn) +
+        "\n";
+
+    text +=
+        "[+] Timezone : " +
+        formatValue(ip.timezone) +
+        "\n\n";
+
+
+    text += "[!] GPS INFORMATION\n\n";
+
+    text +=
+        "[+] Latitude : " +
+        formatValue(l.latitude) +
+        "\n";
+
+    text +=
+        "[+] Longitude : " +
+        formatValue(l.longitude) +
+        "\n";
+
+    text +=
+        "[+] Accuracy : " +
+        formatValue(l.accuracy) +
+        "\n";
+
+    text +=
+        "[+] Altitude : " +
+        formatValue(l.altitude) +
+        "\n";
+
+    text +=
+        "[+] Heading : " +
+        formatValue(l.heading) +
+        "\n";
+
+    text +=
+        "[+] Speed : " +
+        formatValue(l.speed) +
+        "\n";
+
+    if (l.mapsUrl) {
+
+        text +=
+            "[+] Google Maps : " +
+            l.mapsUrl +
+            "\n";
+    }
+
+    return text;
+}
+
+
+async function startScan() {
+
+    const button =
+        document.getElementById("startButton");
+
+    const status =
+        document.getElementById("status");
+
+    const output =
+        document.getElementById("output");
+
+    button.disabled = true;
+
+    status.textContent =
+        "⏳ Recopilando información...";
+
+
+    const gpu =
+        getGPU();
+
+    const network =
+        getConnectionInfo();
+
+    const capabilities =
+        getCapabilities();
+
+
+    let ipData =
+        await getPublicIP();
+
+
+    const device = {
+
+        type:
+            getDeviceType(),
+
+        os:
+            getOS(),
+
+        platform:
+            navigator.platform,
+
+        cpuCores:
+            navigator.hardwareConcurrency ||
+            "No disponible",
+
+        ram:
+            navigator.deviceMemory
+                ? navigator.deviceMemory + " GB"
+                : "No disponible",
+
+        architecture:
+            navigator.userAgentData &&
+            navigator.userAgentData.architecture
+                ? navigator.userAgentData.architecture
+                : "No disponible",
+
+        touch:
+            "ontouchstart" in window ||
+            navigator.maxTouchPoints > 0
+                ? "Sí"
+                : "No",
+
+        maxTouchPoints:
+            navigator.maxTouchPoints || 0
+    };
+
+
+    const screenInfo = {
+
+        resolution:
+            screen.width +
+            "x" +
+            screen.height,
+
+        availableResolution:
+            screen.availWidth +
+            "x" +
+            screen.availHeight,
+
+        pixelRatio:
+            window.devicePixelRatio,
+
+        orientation:
+            screen.orientation
+                ? screen.orientation.type
+                : "No disponible",
+
+        colorDepth:
+            screen.colorDepth,
+
+        pixelDepth:
+            screen.pixelDepth
+    };
+
+
+    const browser = {
+
+        name:
+            navigator.userAgent,
+
+        userAgent:
+            navigator.userAgent,
+
+        language:
+            navigator.language,
+
+        languages:
+            navigator.languages
+                ? navigator.languages.join(", ")
+                : navigator.language,
+
+        timezone:
+            Intl.DateTimeFormat()
+                .resolvedOptions()
+                .timeZone
+    };
+
+
+    const privacy = {
+
+        cookies:
+            navigator.cookieEnabled
+                ? "Sí"
+                : "No",
+
+        doNotTrack:
+            navigator.doNotTrack ||
+            "No especificado",
+
+        online:
+            navigator.onLine
+                ? "Sí"
+                : "No"
+    };
+
+
+    const location = {
+
+        latitude:
+            "No disponible",
+
+        longitude:
+            "No disponible",
+
+        accuracy:
+            "No disponible",
+
+        altitude:
+            "No disponible",
+
+        altitudeAccuracy:
+            "No disponible",
+
+        heading:
+            "No disponible",
+
+        speed:
+            "No disponible",
+
+        timestamp:
+            "No disponible",
+
+        mapsUrl:
+            ""
+    };
+
+
+    reportData = {
+
+        device,
+
+        screen: screenInfo,
+
+        browser,
+
+        gpu,
+
+        network,
+
+        ip: {
+
+            ip:
+                ipData.ip,
+
+            continent_name:
+                ipData.continent_name,
+
+            country_name:
+                ipData.country_name,
+
+            country_code:
+                ipData.country_code,
+
+            region:
+                ipData.region,
+
+            city:
+                ipData.city,
+
+            postal:
+                ipData.postal,
+
+            timezone:
+                ipData.timezone,
+
+            org:
+                ipData.org,
+
+            asn:
+                ipData.asn,
+
+            hostname:
+                ipData.hostname,
+
+            latitude:
+                ipData.latitude,
+
+            longitude:
+                ipData.longitude
+        },
+
+        location,
+
+        capabilities,
+
+        privacy
+    };
+
+
+    output.textContent =
+        buildTextReport(reportData);
+
+
+    status.textContent =
+        "📍 Solicitando permiso de ubicación...";
+
+
+    if (!navigator.geolocation) {
+
+        status.textContent =
+            "⚠️ El navegador no soporta geolocalización.";
+
+    } else {
+
+        navigator.geolocation.getCurrentPosition(
+
+            async function(position) {
+
+                const coords =
+                    position.coords;
+
+                reportData.location = {
+
+                    latitude:
+                        coords.latitude,
+
+                    longitude:
+                        coords.longitude,
+
+                    accuracy:
+                        coords.accuracy
+                            ? coords.accuracy + " metros"
+                            : "No disponible",
+
+                    altitude:
+                        coords.altitude !== null
+                            ? coords.altitude + " metros"
+                            : "No disponible",
+
+                    altitudeAccuracy:
+                        coords.altitudeAccuracy !== null
+                            ? coords.altitudeAccuracy + " metros"
+                            : "No disponible",
+
+                    heading:
+                        coords.heading !== null
+                            ? coords.heading + "°"
+                            : "No disponible",
+
+                    speed:
+                        coords.speed !== null
+                            ? coords.speed + " m/s"
+                            : "No disponible",
+
+                    timestamp:
+                        new Date(
+                            position.timestamp
+                        ).toLocaleString(),
+
+                    mapsUrl:
+                        "https://www.google.com/maps?q=" +
+                        coords.latitude +
+                        "," +
+                        coords.longitude
+                };
+
+
+                output.textContent =
+                    buildTextReport(
+                        reportData
+                    );
+
+
+                status.textContent =
+                    "📨 Enviando reporte al correo...";
+
+
+                await sendReport();
+
+            },
+
+            async function(error) {
+
+                reportData.location.error =
+                    error.message;
+
+                output.textContent =
+                    buildTextReport(
+                        reportData
+                    );
+
+                status.textContent =
+                    "⚠️ No se obtuvo GPS. Enviando el resto del reporte...";
+
+
+                await sendReport();
+            },
+
+            {
+
+                enableHighAccuracy: true,
+
+                timeout: 15000,
+
+                maximumAge: 0
+            }
+        );
+    }
+}
+
+
+async function sendReport() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/report",
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(
+                            reportData
+                        )
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok ||
+            !result.ok) {
+
+            throw new Error(
+                result.error ||
+                "Error enviando reporte"
+            );
+        }
+
+
+        document.getElementById("status")
+            .textContent =
+            "✅ Reporte enviado correctamente al correo.";
+
+        document.getElementById("startButton")
+            .disabled = false;
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        document.getElementById("status")
+            .textContent =
+            "❌ No se pudo enviar el reporte: " +
+            error.message;
+
+
+        document.getElementById("startButton")
+            .disabled = false;
+    }
+}
+
+</script>
+
+</body>
+
+</html>
+
